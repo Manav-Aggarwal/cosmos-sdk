@@ -574,12 +574,29 @@ func (s *Store) getMerkleRoots() (ret map[string][]byte, err error) {
 	return
 }
 
+func (s *Store) IntermediateStateRoot() (rootHash []byte, err error) {
+	storeHashes, err := s.getMerkleRoots()
+	if err != nil {
+		return
+	}
+	// Update substore Merkle roots
+	for key, storeHash := range storeHashes {
+		pfx := substorePrefix(key)
+		stateW := prefixdb.NewPrefixReadWriter(s.stateTxn, pfx)
+		if err = stateW.Set(substoreMerkleRootKey, storeHash); err != nil {
+			return
+		}
+	}
+	return sdkmaps.HashFromMap(storeHashes), nil
+}
+
 // Calculates root hashes and commits to DB. Does not verify target version or perform pruning.
 func (s *Store) commit(target uint64) (id *types.CommitID, err error) {
 	storeHashes, err := s.getMerkleRoots()
 	if err != nil {
 		return
 	}
+
 	// Update substore Merkle roots
 	for key, storeHash := range storeHashes {
 		pfx := substorePrefix(key)

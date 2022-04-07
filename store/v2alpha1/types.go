@@ -89,6 +89,8 @@ type CommitMultiStore interface {
 	Committer
 	snapshottypes.Snapshotter
 
+	IntermediateStateRoot() (rootHash []byte, err error)
+
 	// Gets a read-only view of the store at a specific version.
 	// Returns an error if the version is not found.
 	GetVersion(int64) (BasicMultiStore, error)

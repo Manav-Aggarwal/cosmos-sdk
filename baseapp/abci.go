@@ -196,6 +196,17 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		}
 	}
 
+	isr, err := app.cms.IntermediateStateRoot()
+	if err != nil {
+		panic(err)
+	}
+	res.Events = append(res.Events, abci.Event{
+		Type: "isr",
+		Attributes: append(make([]abci.EventAttribute, 1), abci.EventAttribute{
+			Key:   "begin",
+			Value: string(isr),
+		}),
+	})
 	return res
 }
 
@@ -221,6 +232,18 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			app.logger.Error("EndBlock listening hook failed", "height", req.Height, "err", err)
 		}
 	}
+
+	isr, err := app.cms.IntermediateStateRoot()
+	if err != nil {
+		panic(err)
+	}
+	res.Events = append(res.Events, abci.Event{
+		Type: "isr",
+		Attributes: append(make([]abci.EventAttribute, 1), abci.EventAttribute{
+			Key:   "end",
+			Value: string(isr),
+		}),
+	})
 
 	return res
 }
@@ -303,6 +326,10 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	header := app.deliverState.ctx.BlockHeader()
 	retainHeight := app.GetBlockRetentionHeight(header.Height)
+
+	// TODO: Run CheckBlock here to see if block if invalid and a fraudproof needs to be generated
+
+	// Get block, transactions, and generate state witness
 
 	// Write the DeliverTx state into branched storage and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root

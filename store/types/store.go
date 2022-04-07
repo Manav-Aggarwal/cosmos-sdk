@@ -144,6 +144,8 @@ type CommitMultiStore interface {
 	MultiStore
 	snapshottypes.Snapshotter
 
+	IntermediateStateRoot() (rootHash []byte, err error)
+
 	// Mount a store of type using the given db.
 	// If db == nil, the new store will use the CommitMultiStore db.
 	MountStoreWithDB(key StoreKey, typ StoreType, db dbm.DB)
