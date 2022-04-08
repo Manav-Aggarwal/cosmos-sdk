@@ -196,6 +196,19 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
+
+	isr, err := app.cms.IntermediateStateRoot()
+	if err != nil {
+		panic(err)
+	}
+	res.Events = append(res.Events, abci.Event{
+		Type: "isr",
+		Attributes: append(make([]abci.EventAttribute, 1), abci.EventAttribute{
+			Key:   []byte("begin"),
+			Value: isr,
+		}),
+	})
+
 	return res
 }
 
@@ -215,6 +228,18 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if cp := app.GetConsensusParams(app.deliverState.ctx); cp != nil {
 		res.ConsensusParamUpdates = cp
 	}
+
+	isr, err := app.cms.IntermediateStateRoot()
+	if err != nil {
+		panic(err)
+	}
+	res.Events = append(res.Events, abci.Event{
+		Type: "isr",
+		Attributes: append(make([]abci.EventAttribute, 1), abci.EventAttribute{
+			Key:   []byte("end"),
+			Value: isr,
+		}),
+	})
 
 	return res
 }
