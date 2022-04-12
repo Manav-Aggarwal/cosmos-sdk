@@ -382,7 +382,7 @@ func (rs *Store) IntermediateStateRoot() (rootHash []byte, err error) {
 		version = previousHeight + 1
 	}
 
-	rs.lastCommitInfo = commitStores(version, rs.stores)
+	_ = commitStores(version, rs.stores)
 	hash := rs.lastCommitInfo.Hash()
 	return hash, nil
 }
