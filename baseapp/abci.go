@@ -203,7 +203,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 	res.Events = append(res.Events, abci.Event{
 		Type: "isr",
-		Attributes: append(make([]abci.EventAttribute, 1), abci.EventAttribute{
+		Attributes: append(make([]abci.EventAttribute, 0), abci.EventAttribute{
 			Key:   []byte("begin"),
 			Value: isr,
 		}),
@@ -235,7 +235,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 	res.Events = append(res.Events, abci.Event{
 		Type: "isr",
-		Attributes: append(make([]abci.EventAttribute, 1), abci.EventAttribute{
+		Attributes: append(make([]abci.EventAttribute, 0), abci.EventAttribute{
 			Key:   []byte("end"),
 			Value: isr,
 		}),
@@ -266,7 +266,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
 	}
 
-	gInfo, result, anteEvents, err := app.runTx(mode, req.Tx)
+	gInfo, result, anteEvents, err := app.runTx(mode, req.Tx, nil)
 	if err != nil {
 		return sdkerrors.ResponseCheckTxWithEvents(err, gInfo.GasWanted, gInfo.GasUsed, anteEvents, app.trace)
 	}
@@ -298,11 +298,25 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		telemetry.SetGauge(float32(gInfo.GasWanted), "tx", "gas", "wanted")
 	}()
 
-	gInfo, result, anteEvents, err := app.runTx(runTxModeDeliver, req.Tx)
+	gInfo, result, anteEvents, err := app.runTx(runTxModeDeliver, req.Tx, req.Isr)
 	if err != nil {
 		resultStr = "failed"
 		return sdkerrors.ResponseDeliverTxWithEvents(err, gInfo.GasWanted, gInfo.GasUsed, anteEvents, app.trace)
 	}
+
+	// TODO(manav-aggarwal): Modify to use deliverState here since app.cms does not change
+	isr, err := app.cms.IntermediateStateRoot()
+	if err != nil {
+		panic(err)
+	}
+
+	result.Events = append(result.Events, abci.Event{
+		Type: "isr",
+		Attributes: append(make([]abci.EventAttribute, 0), abci.EventAttribute{
+			Key:   []byte("begin"),
+			Value: isr,
+		}),
+	})
 
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
